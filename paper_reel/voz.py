@@ -34,7 +34,8 @@ def _gemini(texto, salida, voz, modelo):
 
 def _elevenlabs(texto, salida, voz, modelo):
     req = urllib.request.Request(f'https://api.elevenlabs.io/v1/text-to-speech/{voz}?output_format=pcm_24000',
-                                 data=json.dumps({'text': texto, 'model_id': modelo}).encode(),
+                                 data=json.dumps({'text': texto, 'model_id': modelo,
+                                                  'voice_settings': {'stability': 0.5, 'similarity_boost': 0.75}}).encode(),
                                  headers={'xi-api-key': clave('ELEVENLABS_API_KEY'), 'Content-Type': 'application/json'})
     pcm = urllib.request.urlopen(req, timeout=300).read()
     with wave.open(str(salida), 'wb') as w:
@@ -56,9 +57,11 @@ def voces(proyecto, guion):
     """Genera las voces que falten. Las escenas pueden declarar 'voz_existente' (ruta a un WAV ya grabado) para reutilizarlo."""
     from faster_whisper import WhisperModel
     proyecto = Path(proyecto); d = proyecto / 'voces'; d.mkdir(exist_ok=True)
-    prov = opcion('TTS_PROVEEDOR', 'gemini')
-    voz = guion.get('voz') or opcion('TTS_VOZ', 'Algenib')
-    modelo = opcion('TTS_MODELO', 'gemini-3.8-flash-tts' if prov == 'gemini' else 'eleven_multilingual_v2')
+    # el guion puede fijar su propia voz: "tts": {"proveedor": "elevenlabs", "voz": "<voice_id>", "modelo": "eleven_multilingual_v2"}
+    tts = guion.get('tts') or {}
+    prov = tts.get('proveedor') or opcion('TTS_PROVEEDOR', 'gemini')
+    voz = tts.get('voz') or guion.get('voz') or opcion('TTS_VOZ', 'Algenib')
+    modelo = tts.get('modelo') or opcion('TTS_MODELO', 'gemini-3.8-flash-tts' if prov == 'gemini' else 'eleven_multilingual_v2')
     whisper = WhisperModel('small', device='cpu', compute_type='int8')
     for i, e in enumerate(guion['escenas']):
         wav = d / f'e{i:03d}.wav'
