@@ -67,3 +67,7 @@ python -m paper_reel render proyectos/mi_paper
 ## Ejemplos
 
 `ejemplos/` trae las escenas a la medida de dos artículos usados para desarrollar la herramienta: Chen et al. (2025), sobre productos de LAI de alta resolución, y Dubayah et al. (2020), sobre la misión GEDI.
+
+## Licencia
+
+MIT. Ver `LICENSE`.
