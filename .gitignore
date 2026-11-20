@@ -1,0 +1,16 @@
+# claves y configuración local
+.env
+*.key
+geminiapi.txt
+
+# proyectos de usuario: PDFs, textos y figuras de artículos (derechos de autor), voces y videos
+proyectos/
+*.pdf
+*.wav
+*.mp4
+tests/salida/
+
+# python
+__pycache__/
+*.pyc
+.venv/

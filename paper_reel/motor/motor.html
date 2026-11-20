@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#1e2640}
+#bg{position:absolute;inset:0;transition:none}
+#stars{position:absolute;inset:0}
+#cap{position:absolute;top:210px;left:70px;right:70px;height:230px;display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:Inter,system-ui,sans-serif;font-size:66px;line-height:1.18;letter-spacing:-.01em}
+#cap .w{color:rgba(205,212,228,.62);font-weight:400;margin:0 .13em;display:inline-block}
+#cap .w.now{color:#fff;font-weight:800}
+#cap .w.box{color:#fff;font-weight:800;outline:3px solid #6cc4ff;outline-offset:6px;border-radius:4px;position:relative}
+#cap .w.box::before,#cap .w.box::after{content:"";position:absolute;width:12px;height:12px;border:3px solid #6cc4ff;background:#fff;border-radius:50%;top:-14px;left:-14px}
+#cap .w.box::after{top:auto;left:auto;bottom:-14px;right:-14px}
+#hud{position:absolute;top:470px;left:58px;font-family:"JetBrains Mono",monospace;z-index:5}
+#hud .chip{display:inline-flex;gap:14px;align-items:center;background:#0d1020;color:#e9ecf3;font-size:26px;padding:8px 16px;border-radius:6px;font-weight:700}
+#hud .chip b{color:#ff5a5f}
+#hud .dat{margin-top:10px;background:rgba(10,13,26,.88);border-radius:6px;padding:8px 14px;display:inline-block}
+#hud .dat div{color:#ffd166;font-size:28px;font-weight:700;line-height:1.35;white-space:nowrap}
+#stage{position:absolute;top:560px;left:0;width:1080px;height:1060px;transform-origin:50% 50%}
+#stage svg{width:1080px;height:1060px;display:block}
+#marca{position:absolute;bottom:250px;left:0;right:0;text-align:center;font-family:Inter,sans-serif;font-size:24px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.28)}
+#marca small{display:block;font-size:17px;font-weight:500;letter-spacing:.08em;margin-top:4px}
+#barra{position:absolute;top:150px;left:70px;right:70px;height:6px;border-radius:4px;background:rgba(255,255,255,.12)}
+#barra i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#6cc4ff,#a78bfa)}
+</style></head>
+<body>
+<div id="bg"></div><svg id="stars" width="1080" height="1920"></svg>
+<div id="barra"><i></i></div>
+<div id="cap"></div>
+<div id="hud"></div>
+<div id="stage"></div>
+<div id="marca">/*MARCA*/<small>/*FUENTE*/</small></div>
+<script>
+const T = /*TIEMPOS*/;
+const META = /*META*/;
+/* ---------- utilidades para las escenas ---------- */
+const H = {
+  clamp:(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),
+  lerp:(a,b,x)=>a+(b-a)*x,
+  eo:x=>1-Math.pow(1-Math.max(0,Math.min(1,x)),3),            // ease out cúbico
+  eio:x=>{x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},
+  p(lt,a,b){return this.eo((lt-a)/(b-a))},                       // progreso suavizado entre a y b segundos
+  pl(lt,a,b){return this.clamp((lt-a)/(b-a))},                   // progreso lineal
+  num(x,dec=0){return x.toLocaleString('es-CO',{minimumFractionDigits:dec,maximumFractionDigits:dec})},
+  rnd(seed){let s=seed%2147483647;if(s<=0)s+=2147483646;return()=>(s=s*16807%2147483647)/2147483647},
+  // tiempo local (s) en que empieza a decirse la palabra k-ésima que coincide con 'texto' en la escena actual, para sincronizar animaciones con la voz
+  // segundo local de un evento: cuando se dice 'palabra' (o lista de alternativas); si no se encuentra, en la fracción 'frac' de la escena
+  cuando(escena,palabra,frac,dur){const ps=Array.isArray(palabra)?palabra:[palabra];for(const w of ps){if(!w)continue;const t=this.at(escena,String(w));if(t>0)return t}return frac*dur},
+  at(escena,texto,n=1){const ws=T[escena].palabras;let c=0;for(const w of ws){if(w[0].toLowerCase().includes(texto.toLowerCase())&&++c===n)return w[1]-T[escena].inicio}return 0}
+};
+/*ESCENAS*/
+/* ---------- motor ---------- */
+const stars = (()=>{const r=H.rnd(7);let s='';for(let i=0;i<70;i++){s+=`<circle cx="${(r()*1080).toFixed(0)}" cy="${(r()*1920).toFixed(0)}" r="${(r()*1.8+.4).toFixed(1)}" fill="#fff" opacity="${(r()*.35+.08).toFixed(2)}"/>`}return s})();
+document.getElementById('stars').innerHTML = stars;
+const TOTAL = T[T.length-1].inicio + T[T.length-1].dur;
+function frase(ws, t){
+  // agrupa en frases: corte tras puntuación o a las 6 palabras
+  const grupos=[];let g=[];
+  ws.forEach((w,i)=>{g.push(w);if(/[.,:;?!]$/.test(w[0])||g.length>=6){grupos.push(g);g=[]}});
+  if(g.length)grupos.push(g);
+  let act=grupos[0];
+  for(const gr of grupos){if(gr[0][1]<=t+0.02)act=gr}
+  return act;
+}
+window.R = function(t){
+  let i=0; for(let k=0;k<T.length;k++){ if(T[k].inicio<=t) i=k }
+  const esc=T[i], lt=t-esc.inicio, dur=esc.dur, sc=ESCENAS[i];
+  document.getElementById('bg').style.background = sc.bg || 'linear-gradient(180deg,#1b2238,#283253)';
+  document.getElementById('stars').style.opacity = sc.estrellas===false?0:1;
+  // subtítulo
+  const fr=frase(esc.palabras,t); let html='';
+  const vis=fr.filter(w=>w[1]<=t+0.02); const ult=vis[vis.length-1];
+  fr.forEach(w=>{ if(w[1]>t+0.02) return;
+    const destacar=/\d/.test(w[0])||(sc.claves||[]).some(c=>w[0].toLowerCase().includes(c));
+    const cls= w===ult ? (destacar?'w box':'w now') : 'w';
+    html+=`<span class="${cls}">${w[0]}</span>`});
+  // contenedor interno para que la frase haga salto de línea en vez de salirse por los bordes
+  const cap=document.getElementById('cap');
+  cap.innerHTML=`<div style="max-width:940px;line-height:1.22">${html}</div>`;
+  const inner=cap.firstChild; let fs=66; cap.style.fontSize=fs+'px';
+  while(inner.scrollHeight>230 && fs>44){fs-=4; cap.style.fontSize=fs+'px'}
+  // HUD
+  const hud=sc.hud||{}; document.getElementById('hud').innerHTML = hud.cap?
+    `<div class="chip"><b>${i+1}</b>${hud.cap}</div>`+(hud.datos?`<br><div class="dat">${hud.datos.map(d=>`<div>${d}</div>`).join('')}</div>`:''):'';
+  // escena con entrada suave
+  const ent=H.p(lt,0,.45);
+  const st=document.getElementById('stage');
+  st.style.opacity=ent; st.style.transform=`scale(${(0.96+0.04*ent).toFixed(4)})`;
+  st.innerHTML = sc.draw(lt, dur, i);
+  document.querySelector('#barra i').style.width=(100*t/TOTAL).toFixed(2)+'%';
+  return {i, lt, TOTAL};
+};
+window.TOTAL = TOTAL;
+</script>
+</body></html>

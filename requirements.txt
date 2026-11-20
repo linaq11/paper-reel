@@ -1,0 +1,4 @@
+pymupdf
+playwright
+faster-whisper
+# además: ffmpeg y node en el PATH, y `python -m playwright install chromium`
