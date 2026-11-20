@@ -35,6 +35,11 @@ def numeros_paper(texto):
     return s
 
 
+# claves de encuadre y estilo: son posiciones o tamaños en pantalla, no cifras del artículo
+GEOMETRIA = {'x', 'y', 'cx', 'cy', 'x0', 'y0', 'x1', 'y1', 'ancho', 'alto', 'aspecto', 'escala', 'zoom', 'r', 'radio', 'rot', 'giro',
+             'dx', 'dy', 'pos', 'posicion', 'region', 'recuadro', 'recuadros', 'semilla', 'color', 'colores', 'fondo', 'velocidad', 'opacidad'}
+
+
 def _cadenas(obj):
     if isinstance(obj, str):
         yield obj
@@ -42,8 +47,12 @@ def _cadenas(obj):
         yield str(obj)
     elif isinstance(obj, dict):
         for k, v in obj.items():
-            if k not in ('palabra', 'fondo', 'plantilla', 'figura', 'id', 'semilla', 'color') and not k.startswith('palabra'):
-                yield from _cadenas(v)
+            if k in GEOMETRIA or k in ('palabra', 'plantilla', 'figura', 'id') or k.startswith('palabra'):
+                # dentro de un recuadro puede ir un rótulo visible: ese sí se revisa
+                if isinstance(v, (dict, list)) and k in ('recuadro', 'recuadros', 'region'):
+                    yield from (s for s in _cadenas(v) if not s.replace('.', '', 1).replace('-', '', 1).isdigit())
+                continue
+            yield from _cadenas(v)
     elif isinstance(obj, list):
         for v in obj:
             yield from _cadenas(v)
