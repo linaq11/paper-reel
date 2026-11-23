@@ -8,10 +8,27 @@ from .config import FPS
 from .tiempos import PAUSA
 
 
+def _tiempos_al_dia(proyecto, guion, tiempos):
+    """Antes de grabar el video: tiempos.json debe salir de las voces actuales. Si son tiempos de prueba o de voces
+    anteriores, la imagen y el audio se desfasan y ffmpeg corta el video a mitad (BrokenPipe)."""
+    import wave
+    if len(tiempos) != len(guion['escenas']):
+        raise SystemExit(f'tiempos.json tiene {len(tiempos)} escenas y el guion {len(guion["escenas"])}: corre `tiempos` de nuevo')
+    faltan = [k for k in range(len(tiempos)) if not (proyecto / 'voces' / f'e{k:03d}.wav').exists()]
+    if faltan:
+        raise SystemExit(f'faltan voces de las escenas {faltan[:10]}: corre `voces`')
+    for k, t in enumerate(tiempos):
+        with wave.open(str(proyecto / 'voces' / f'e{k:03d}.wav')) as w:
+            d = w.getnframes() / w.getframerate()
+        if abs(t['dur'] - (d + PAUSA)) > 0.5:
+            raise SystemExit(f'escena {k}: tiempos.json dice {t["dur"]:.1f} s y la voz dura {d + PAUSA:.1f} s. '
+                             'Son tiempos de prueba o de otra grabación: corre `tiempos` antes de `render`.')
+
+
 def render(proyecto, horizontal=True, cuadros=None, salida=None):
     proyecto = Path(proyecto)
-    guion = json.loads((proyecto / 'guion.json').read_text(encoding='utf-8'))
-    tiempos = json.loads((proyecto / 'tiempos.json').read_text(encoding='utf-8'))
+    guion = json.loads((proyecto / 'guion.json').read_text(encoding='utf-8-sig'))
+    tiempos = json.loads((proyecto / 'tiempos.json').read_text(encoding='utf-8-sig'))
     pagina = componer(proyecto, guion, tiempos, horizontal)
     ancho, alto = (1920, 1080) if horizontal else (1080, 1920)
     with sync_playwright() as p:
@@ -27,6 +44,7 @@ def render(proyecto, horizontal=True, cuadros=None, salida=None):
                 pg.evaluate(f'window.R({t})'); pg.screenshot(path=str(d / f'{"h" if horizontal else "v"}_{t:07.2f}.png'))
             b.close(); print(f'{len(cuadros)} cuadros de revisión en {d}; errores: {errores}'); return
         n = len(tiempos)
+        _tiempos_al_dia(proyecto, guion, tiempos)
         voz = proyecto / 'voz.wav'
         filtros = ''.join(f'[{k}:a]apad=pad_dur={PAUSA}[a{k}];' for k in range(n))
         subprocess.run(['ffmpeg', '-y', '-v', 'error', *sum([['-i', str(proyecto / 'voces' / f'e{k:03d}.wav')] for k in range(n)], []),
@@ -44,6 +62,8 @@ def render(proyecto, horizontal=True, cuadros=None, salida=None):
             if k % 480 == 0:
                 print(f'cuadro {k}/{total_c}', flush=True)
         ff.stdin.close(); ff.wait(); b.close()
+        if ff.returncode:
+            raise SystemExit(f'ffmpeg terminó con error {ff.returncode}; el video {salida} quedó incompleto')
         if errores:
             print('errores durante el render:', errores[:3])
         print(f'video: {salida} ({total:.1f} s)')

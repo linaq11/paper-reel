@@ -1,4 +1,4 @@
-"""Catálogo de la biblioteca de plantillas de paper-reel, en JSON.
+"""Catálogo de la biblioteca de plantillas de A Paper to Reel, en JSON.
 
 Lee biblioteca.js con node y saca, sin las funciones draw:
   plantillas: [{nombre, descripcion, params, ejemplo, narracion_ejemplo}]

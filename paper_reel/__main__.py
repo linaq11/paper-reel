@@ -1,4 +1,4 @@
-"""paper-reel: de un artículo científico (PDF) a un video explicativo animado.
+"""A Paper to Reel: de un artículo científico (PDF) a un video explicativo animado.
 
 Uso:
   python -m paper_reel extraer   articulo.pdf proyectos/mi_paper
@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 def _guion(p):
-    return json.loads((Path(p) / 'guion.json').read_text(encoding='utf-8'))
+    return json.loads((Path(p) / 'guion.json').read_text(encoding='utf-8-sig'))
 
 
 def main(a):

@@ -1,4 +1,4 @@
-"""Prueba visual de la biblioteca de plantillas de paper-reel.
+"""Prueba visual de la biblioteca de plantillas de A Paper to Reel.
 
 Inserta biblioteca.js y una especificación de prueba (una escena por plantilla, con sus params de ejemplo)
 en motor_h.html (1920x1080) y motor.html (1080x1920), arma tiempos falsos de 9 a 14 s por escena con las

@@ -1,4 +1,6 @@
 pymupdf
 playwright
 faster-whisper
+# opcional, para el proveedor de voz edge:
+# edge-tts
 # además: ffmpeg y node en el PATH, y `python -m playwright install chromium`

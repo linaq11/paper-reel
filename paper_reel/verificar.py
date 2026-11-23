@@ -58,10 +58,33 @@ def _cadenas(obj):
             yield from _cadenas(v)
 
 
+def _palabras_clave(o):
+    """Palabras que disparan una animación de plantilla (campos palabra, palabra_inicio, ...). Devuelve grupos:
+    un campo con una lista son alternativas, y basta que el texto diga una."""
+    if isinstance(o, dict):
+        for k, v in o.items():
+            if k.startswith('palabra'):
+                if isinstance(v, str):
+                    yield [v]
+                elif isinstance(v, list) and v:
+                    yield [str(x) for x in v]
+            else:
+                yield from _palabras_clave(v)
+    elif isinstance(o, list):
+        for v in o:
+            yield from _palabras_clave(v)
+
+
+def _sin_tildes(s):
+    import unicodedata
+    s = unicodedata.normalize('NFD', s.lower())
+    return ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+
+
 def verificar(proyecto):
     proyecto = Path(proyecto)
     texto = (proyecto / 'texto.txt').read_text(encoding='utf-8')
-    g = json.loads((proyecto / 'guion.json').read_text(encoding='utf-8'))
+    g = json.loads((proyecto / 'guion.json').read_text(encoding='utf-8-sig'))
     validos = numeros_paper(texto) | TRIVIALES
     problemas, avisos = [], []
     for i, e in enumerate(g['escenas']):
@@ -82,6 +105,11 @@ def verificar(proyecto):
                     avisos.append(f'escena {i}: {tok} viene de fuera del paper ({c["fuente"]})')
                 else:
                     problemas.append(f'escena {i}: "{tok}" no aparece en el paper ni está declarado como cálculo')
+        # si el texto se reescribe, una animación puede quedar esperando una palabra que la voz ya no dice
+        texto_n = ' ' + re.sub(r'[^\w,.]', ' ', _sin_tildes(e.get('texto', ''))) + ' '
+        for grupo in _palabras_clave(e.get('params')):
+            if not any(re.sub(r'[^\w,.]', ' ', _sin_tildes(w)).strip() in texto_n for w in grupo):
+                problemas.append(f'escena {i}: la animación espera la palabra "{" o ".join(grupo)}", que no está en el texto')
     rep = proyecto / 'verificacion.txt'
     rep.write_text('\n'.join(['PROBLEMAS'] + problemas + ['', 'AVISOS'] + avisos), encoding='utf-8')
     print(f'verificación: {len(problemas)} problemas, {len(avisos)} avisos -> {rep}')

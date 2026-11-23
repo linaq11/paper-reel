@@ -1,4 +1,4 @@
-// biblioteca.js: plantillas animadas de paper-reel (contrato en docs/plantillas.md).
+// biblioteca.js: plantillas animadas de A Paper to Reel (contrato en docs/plantillas.md).
 // JavaScript plano, sin dependencias. Se inserta en motor.html o motor_h.html antes de la especificación de escenas.
 // H (ayudas del motor) y FIGURAS solo se leen dentro de las funciones draw; el archivo se puede cargar con node
 // (require) para leer el catálogo sin que exista H.
