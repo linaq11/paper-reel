@@ -3,7 +3,7 @@ las palabras que Whisper oye distinto (cifras, siglas) se interpolan entre las v
 import difflib, json, re, unicodedata, wave
 from pathlib import Path
 
-PAUSA = 0.35
+PAUSA = 0.7  # silencio entre escenas (cambio de párrafo)
 
 
 def _norm(w):
